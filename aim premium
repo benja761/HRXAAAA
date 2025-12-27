@@ -1,0 +1,431 @@
+--// lo hizo el chinoooooooooo wuajjajsd
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local lp = Players.LocalPlayer
+local Cam = workspace.CurrentCamera
+
+--// GLOBAL KEYS
+_G.aimKey = nil
+_G.toggleGuiKey = Enum.KeyCode.F4
+_G.toggleFOVKey = nil
+
+--// AIM SETTINGS
+local aimEnabled = false
+local ignoreFriends = false
+local targetLocked = nil
+local fovRadius = 150
+local fovVisible = true
+local aimPart = "Head"
+local smoothValue = 1
+
+--// GUI STATES
+local stateIgnoreFriends = false
+local stateAimPartIndex = 1
+local stateFOV = fovRadius
+local stateAimKey = _G.aimKey
+local stateFOVKey = _G.toggleFOVKey
+local stateToggleGuiKey = _G.toggleGuiKey
+local stateSmooth = smoothValue
+local guiVisible = true
+
+--// GUI
+local gui = Instance.new("ScreenGui", lp:WaitForChild("PlayerGui"))
+gui.Name = "LOS_CHUPA_POTO"
+gui.ResetOnSpawn = false
+
+--// MAIN FRAME
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,860,0,540)
+main.Position = UDim2.new(0.08,0,0.12,0)
+main.BackgroundColor3 = Color3.fromRGB(0,0,0)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+
+--// SIDEBAR
+local sidebar = Instance.new("Frame", main)
+sidebar.Size = UDim2.new(0,220,1,0)
+sidebar.BackgroundColor3 = Color3.fromRGB(25,25,25)
+sidebar.BorderSizePixel = 0
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0,14)
+
+--// LOGO
+local logo = Instance.new("TextLabel", sidebar)
+logo.Position = UDim2.new(0,20,0,15)
+logo.Size = UDim2.new(1,-40,0,30)
+logo.Text = "LOS CHUPA POTO"
+logo.Font = Enum.Font.GothamBold
+logo.TextSize = 22
+logo.TextColor3 = Color3.fromRGB(255,50,50)
+logo.BackgroundTransparency = 1
+logo.TextXAlignment = Enum.TextXAlignment.Left
+
+--// CONTENT
+local content = Instance.new("Frame", main)
+content.Position = UDim2.new(0,220,0,0)
+content.Size = UDim2.new(1,-220,1,0)
+content.BackgroundColor3 = Color3.fromRGB(15,15,15)
+content.BorderSizePixel = 0
+Instance.new("UICorner", content).CornerRadius = UDim.new(0,14)
+
+--// HEADER
+local header = Instance.new("Frame", content)
+header.Size = UDim2.new(1,0,0,70)
+header.BackgroundColor3 = Color3.fromRGB(20,20,20)
+header.BorderSizePixel = 0
+Instance.new("UICorner", header).CornerRadius = UDim.new(0,10)
+
+local title = Instance.new("TextLabel", header)
+title.Position = UDim2.new(0,20,0,20)
+title.Size = UDim2.new(1,-40,0,30)
+title.Text = "South Bronx : The Trenches"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(255,50,50)
+title.BackgroundTransparency = 1
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+--// HELPERS
+local function clearContent()
+	for _,v in ipairs(content:GetChildren()) do
+		if v ~= header then v:Destroy() end
+	end
+end
+
+local function section(y,text)
+	local l = Instance.new("TextLabel", content)
+	l.Position = UDim2.new(0.05,0,y,0)
+	l.Size = UDim2.new(0.9,0,0,22)
+	l.Text = text
+	l.Font = Enum.Font.GothamBold
+	l.TextSize = 13
+	l.TextColor3 = Color3.fromRGB(255,50,50)
+	l.TextXAlignment = Enum.TextXAlignment.Left
+	l.BackgroundTransparency = 1
+end
+
+--// SWITCH MODERNO
+local function addSwitch(y,text,stateVar,callback)
+	local frame = Instance.new("Frame", content)
+	frame.Position = UDim2.new(0.05,0,y,0)
+	frame.Size = UDim2.new(0.9,0,0,26)
+	frame.BackgroundTransparency = 1
+
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(0.7,0,1,0)
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(255,255,255)
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 14
+	label.BackgroundTransparency = 1
+	label.TextXAlignment = Enum.TextXAlignment.Left
+
+	local switch = Instance.new("Frame", frame)
+	switch.Size = UDim2.new(0,36,0,18)
+	switch.Position = UDim2.new(0.75,0,0.15,0)
+	switch.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	switch.BorderSizePixel = 0
+	Instance.new("UICorner", switch).CornerRadius = UDim.new(1,0)
+
+	local knob = Instance.new("Frame", switch)
+	knob.Size = UDim2.new(0,16,1,0)
+	knob.Position = UDim2.new(stateVar and 1 or 0,0,0,0)
+	knob.BackgroundColor3 = Color3.fromRGB(255,50,50)
+	Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
+
+	local state = stateVar
+	local function toggle()
+		state = not state
+		knob:TweenPosition(UDim2.new(state and 1 or 0,0,0,0), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.2,true)
+		if callback then callback(state) end
+	end
+	switch.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then toggle() end
+	end)
+	label.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then toggle() end
+	end)
+	return function() return state end
+end
+
+--// TABS
+local function loadSelf()
+	clearContent()
+	section(0.16,"SELF HELPERS")
+	stateIgnoreFriends = addSwitch(0.28,"Ignore Friends",stateIgnoreFriends,function(v) ignoreFriends = v end)()
+end
+
+local function loadCombat()
+	clearContent()
+	section(0.16,"COMBAT")
+
+	-- Aim Key
+	local b = Instance.new("TextButton", content)
+	b.Position = UDim2.new(0.05,0,0.22,0)
+	b.Size = UDim2.new(0.9,0,0,26)
+	b.Text = "Aim Key: "..(stateAimKey or "None")
+	b.Font = Enum.Font.Gotham
+	b.TextSize = 14
+	b.TextColor3 = Color3.fromRGB(255,255,255)
+	b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+	b.MouseButton1Click:Connect(function()
+		b.Text = "Aim Key: ..."
+		local c; c = UIS.InputBegan:Connect(function(i,gp)
+			if not gp and i.KeyCode ~= Enum.KeyCode.Unknown then
+				stateAimKey = i.KeyCode.Name
+				_G.aimKey = stateAimKey
+				b.Text = "Aim Key: "..stateAimKey
+				c:Disconnect()
+			end
+		end)
+	end)
+
+	-- Aim Part Selector
+	section(0.32,"Aim Part")
+	local aimParts = {"Head","Pecho","Pies"}
+	local aimIndex = stateAimPartIndex
+	local partButton = Instance.new("TextButton", content)
+	partButton.Position = UDim2.new(0.05,0,0.38,0)
+	partButton.Size = UDim2.new(0.9,0,0,26)
+	partButton.Text = "Aim Target: "..aimParts[aimIndex]
+	partButton.Font = Enum.Font.Gotham
+	partButton.TextSize = 14
+	partButton.TextColor3 = Color3.fromRGB(255,255,255)
+	partButton.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", partButton).CornerRadius = UDim.new(0,6)
+	partButton.MouseButton1Click:Connect(function()
+		aimIndex = aimIndex + 1
+		if aimIndex > #aimParts then aimIndex = 1 end
+		stateAimPartIndex = aimIndex
+		aimPart = aimParts[aimIndex]
+		partButton.Text = "Aim Target: "..aimPart
+	end)
+
+	-- Smooth Slider
+	section(0.44,"Smooth")
+	local smoothLabel = Instance.new("TextLabel", content)
+	smoothLabel.Position = UDim2.new(0.05,0,0.50,0)
+	smoothLabel.Size = UDim2.new(0.9,0,0,20)
+	smoothLabel.Text = "Smooth: "..smoothValue
+	smoothLabel.Font = Enum.Font.Gotham
+	smoothLabel.TextSize = 14
+	smoothLabel.TextColor3 = Color3.fromRGB(255,255,255)
+	smoothLabel.BackgroundTransparency = 1
+
+	local smoothFrame = Instance.new("Frame", content)
+	smoothFrame.Position = UDim2.new(0.05,0,0.56,0)
+	smoothFrame.Size = UDim2.new(0.9,0,0,10)
+	smoothFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	Instance.new("UICorner", smoothFrame)
+
+	local smoothFill = Instance.new("Frame", smoothFrame)
+	smoothFill.Size = UDim2.new(smoothValue/10,0,1,0)
+	smoothFill.BackgroundColor3 = Color3.fromRGB(255,50,50)
+	Instance.new("UICorner", smoothFill)
+
+	local draggingSmooth = false
+	smoothFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSmooth = true end
+	end)
+	UIS.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSmooth = false end
+	end)
+	UIS.InputChanged:Connect(function(input)
+		if draggingSmooth and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local rel = math.clamp((input.Position.X - smoothFrame.AbsolutePosition.X)/smoothFrame.AbsoluteSize.X,0,1)
+			smoothValue = math.floor(1 + rel*9)
+			smoothLabel.Text = "Smooth: "..smoothValue
+			smoothFill.Size = UDim2.new(rel,0,1,0)
+		end
+	end)
+
+	-- FOV Slider
+	section(0.64,"FOV Radius")
+	local fovLabel = Instance.new("TextLabel", content)
+	fovLabel.Position = UDim2.new(0.05,0,0.70,0)
+	fovLabel.Size = UDim2.new(0.9,0,0,20)
+	fovLabel.Text = "FOV: "..fovRadius
+	fovLabel.Font = Enum.Font.Gotham
+	fovLabel.TextSize = 14
+	fovLabel.TextColor3 = Color3.fromRGB(255,255,255)
+	fovLabel.BackgroundTransparency = 1
+
+	local fovFrame = Instance.new("Frame", content)
+	fovFrame.Position = UDim2.new(0.05,0,0.76,0)
+	fovFrame.Size = UDim2.new(0.9,0,0,10)
+	fovFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	Instance.new("UICorner", fovFrame)
+
+	local fovFill = Instance.new("Frame", fovFrame)
+	fovFill.Size = UDim2.new(fovRadius/360,0,1,0)
+	fovFill.BackgroundColor3 = Color3.fromRGB(255,50,50)
+	Instance.new("UICorner", fovFill)
+
+	local draggingFOV = false
+	fovFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingFOV = true end
+	end)
+	UIS.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingFOV = false end
+	end)
+	UIS.InputChanged:Connect(function(input)
+		if draggingFOV and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local rel = math.clamp((input.Position.X - fovFrame.AbsolutePosition.X)/fovFrame.AbsoluteSize.X,0,1)
+			fovRadius = math.floor(rel*360)
+			fovLabel.Text = "FOV: "..fovRadius
+			fovFill.Size = UDim2.new(rel,0,1,0)
+		end
+	end)
+end
+
+local function loadSettings()
+	clearContent()
+	section(0.16,"SETTINGS")
+
+	-- GUI Toggle Key
+	local b1 = Instance.new("TextButton", content)
+	b1.Position = UDim2.new(0.05,0,0.22,0)
+	b1.Size = UDim2.new(0.9,0,0,26)
+	b1.Text = "Toggle GUI Key: "..tostring(_G.toggleGuiKey)
+	b1.Font = Enum.Font.Gotham
+	b1.TextSize = 14
+	b1.TextColor3 = Color3.fromRGB(255,255,255)
+	b1.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", b1).CornerRadius = UDim.new(0,6)
+	b1.MouseButton1Click:Connect(function()
+		b1.Text = "Toggle GUI Key: ..."
+		local c; c = UIS.InputBegan:Connect(function(i,gp)
+			if not gp and i.KeyCode ~= Enum.KeyCode.Unknown then
+				_G.toggleGuiKey = i.KeyCode
+				b1.Text = "Toggle GUI Key: "..tostring(_G.toggleGuiKey)
+				c:Disconnect()
+			end
+		end)
+	end)
+
+	-- FOV Toggle Key
+	local b2 = Instance.new("TextButton", content)
+	b2.Position = UDim2.new(0.05,0,0.32,0)
+	b2.Size = UDim2.new(0.9,0,0,26)
+	b2.Text = "Toggle FOV Key: "..tostring(_G.toggleFOVKey)
+	b2.Font = Enum.Font.Gotham
+	b2.TextSize = 14
+	b2.TextColor3 = Color3.fromRGB(255,255,255)
+	b2.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", b2).CornerRadius = UDim.new(0,6)
+	b2.MouseButton1Click:Connect(function()
+		b2.Text = "Toggle FOV Key: ..."
+		local c; c = UIS.InputBegan:Connect(function(i,gp)
+			if not gp and i.KeyCode ~= Enum.KeyCode.Unknown then
+				_G.toggleFOVKey = i.KeyCode
+				b2.Text = "Toggle FOV Key: "..tostring(_G.toggleFOVKey)
+				c:Disconnect()
+			end
+		end)
+	end)
+end
+
+--// BUTTONS
+local function side(name,y,func)
+	local b = Instance.new("TextButton", sidebar)
+	b.Position = UDim2.new(0,16,0,y)
+	b.Size = UDim2.new(1,-32,0,36)
+	b.Text = "  "..name
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 14
+	b.TextXAlignment = Enum.TextXAlignment.Left
+	b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	b.TextColor3 = Color3.fromRGB(255,255,255)
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+	b.MouseButton1Click:Connect(function()
+		func()
+		for _,btn in pairs(sidebar:GetChildren()) do
+			if btn:IsA("TextButton") then
+				btn.TextColor3 = Color3.fromRGB(255,255,255)
+			end
+		end
+		b.TextColor3 = Color3.fromRGB(255,50,50)
+	end)
+end
+
+side("Self",150,loadSelf)
+side("Combat",200,loadCombat)
+side("Settings",250,loadSettings)
+loadSelf()
+
+--// FOV CIRCLE
+local FOV = Drawing.new("Circle")
+FOV.Color = Color3.fromRGB(255,50,50)
+FOV.Thickness = 2
+FOV.Filled = false
+FOV.NumSides = 80
+
+--// AIM TARGET
+local function getClosestTarget(partName)
+	local closest, dist = nil, math.huge
+	local center = Cam.ViewportSize/2
+	for _,p in pairs(Players:GetPlayers()) do
+		if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			if ignoreFriends and lp:IsFriendsWith(p.UserId) then continue end
+			local targetPart
+			if partName == "Head" and p.Character:FindFirstChild("Head") then
+				targetPart = p.Character.Head
+			elseif partName == "Pecho" then
+				targetPart = p.Character:FindFirstChild("HumanoidRootPart")
+			elseif partName == "Pies" then
+				targetPart = p.Character:FindFirstChild("HumanoidRootPart")
+			end
+			if targetPart then
+				local pos, vis = Cam:WorldToViewportPoint(targetPart.Position)
+				local mag = (Vector2.new(pos.X,pos.Y)-center).Magnitude
+				if vis and mag < dist and mag < fovRadius then
+					dist = mag
+					closest = targetPart
+				end
+			end
+		end
+	end
+	return closest
+end
+
+--// INPUT
+UIS.InputBegan:Connect(function(i,gp)
+	if gp then return end
+	if _G.toggleGuiKey and i.KeyCode == _G.toggleGuiKey then
+		guiVisible = not guiVisible
+		gui.Enabled = guiVisible
+	end
+	if _G.toggleFOVKey and i.KeyCode == _G.toggleFOVKey then
+		fovVisible = not fovVisible
+		FOV.Visible = fovVisible
+	end
+	if _G.aimKey and i.KeyCode.Name == _G.aimKey then
+		aimEnabled = not aimEnabled
+		if not aimEnabled then targetLocked = nil end
+	end
+end)
+
+--// LOOP
+RunService.RenderStepped:Connect(function()
+	FOV.Position = Cam.ViewportSize/2
+	FOV.Radius = fovRadius
+	FOV.Visible = fovVisible
+
+	if aimEnabled then
+		if not targetLocked or not targetLocked.Parent then
+			targetLocked = getClosestTarget(aimPart)
+		end
+		if targetLocked then
+			local currentCF = Cam.CFrame
+			local targetCF = CFrame.lookAt(currentCF.Position, targetLocked.Position)
+			local lerpAmount = 1 - (smoothValue/10)
+			Cam.CFrame = currentCF:Lerp(targetCF, lerpAmount)
+		end
+	else
+		targetLocked = nil
+	end
+end)
