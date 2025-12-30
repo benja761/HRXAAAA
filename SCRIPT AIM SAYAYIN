@@ -1,0 +1,486 @@
+--// SERVICES
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local lp = Players.LocalPlayer
+local Cam = workspace.CurrentCamera
+
+--// GLOBAL KEYS
+_G.aimKey = nil
+_G.toggleGuiKey = Enum.KeyCode.F4
+_G.toggleFOVKey = Enum.KeyCode.F5
+_G.fakeFriendKey = nil
+
+--// AIM SETTINGS
+local aimEnabled = false
+local ignoreFriends = false
+local targetLocked = nil
+local fovRadius = 150
+local fovVisible = true
+local aimPart = "Head"
+local smoothValue = 1
+local fovFollowCursor = false
+
+--// GUI STATES
+local stateHealthBar = true
+local stateAimPartIndex = 1
+local stateAimKey = _G.aimKey
+local stateToggleGuiKey = _G.toggleGuiKey
+local stateFOVKey = _G.toggleFOVKey
+local stateSmooth = smoothValue
+local guiVisible = true
+local stateFakeFriendKey = _G.fakeFriendKey
+
+--// GUI
+local gui = Instance.new("ScreenGui", lp:WaitForChild("PlayerGui"))
+gui.Name = "LOS SAYAYIN 65"
+gui.ResetOnSpawn = false
+
+-- Barra de vida independiente
+local healthGui = Instance.new("ScreenGui", lp:WaitForChild("PlayerGui"))
+healthGui.Name = "HealthBarsGui"
+healthGui.ResetOnSpawn = false
+
+--// MAIN FRAME
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,860,0,540)
+main.Position = UDim2.new(0.08,0,0.12,0)
+main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+
+--// SIDEBAR
+local sidebar = Instance.new("Frame", main)
+sidebar.Size = UDim2.new(0,220,1,0)
+sidebar.BackgroundColor3 = Color3.fromRGB(20,20,20)
+sidebar.BorderSizePixel = 0
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0,14)
+
+--// LOGO
+local logo = Instance.new("TextLabel", sidebar)
+logo.Position = UDim2.new(0,20,0,15)
+logo.Size = UDim2.new(1,-40,0,30)
+logo.Text = "LOS SAYAYIN 65"
+logo.Font = Enum.Font.GothamBold
+logo.TextSize = 22
+logo.TextColor3 = Color3.fromRGB(0,255,0)
+logo.BackgroundTransparency = 1
+logo.TextXAlignment = Enum.TextXAlignment.Left
+
+--// CONTENT
+local content = Instance.new("Frame", main)
+content.Position = UDim2.new(0,220,0,0)
+content.Size = UDim2.new(1,-220,1,0)
+content.BackgroundColor3 = Color3.fromRGB(15,15,15)
+content.BorderSizePixel = 0
+Instance.new("UICorner", content).CornerRadius = UDim.new(0,14)
+
+--// HEADER
+local header = Instance.new("Frame", content)
+header.Size = UDim2.new(1,0,0,70)
+header.BackgroundColor3 = Color3.fromRGB(20,20,20)
+header.BorderSizePixel = 0
+Instance.new("UICorner", header).CornerRadius = UDim.new(0,10)
+
+local title = Instance.new("TextLabel", header)
+title.Position = UDim2.new(0,20,0,20)
+title.Size = UDim2.new(1,-40,0,30)
+title.Text = "South Bronx : The Trenches"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0,255,0)
+title.BackgroundTransparency = 1
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+--// HELPERS
+local function clearContent()
+	for _,v in ipairs(content:GetChildren()) do
+		if v ~= header then v:Destroy() end
+	end
+end
+
+local function section(y,text)
+	local l = Instance.new("TextLabel", content)
+	l.Position = UDim2.new(0.05,0,y,0)
+	l.Size = UDim2.new(0.9,0,0,22)
+	l.Text = text
+	l.Font = Enum.Font.GothamBold
+	l.TextSize = 13
+	l.TextColor3 = Color3.fromRGB(0,255,0)
+	l.TextXAlignment = Enum.TextXAlignment.Left
+	l.BackgroundTransparency = 1
+end
+
+local function addSwitch(y,text,stateVar,callback)
+	local frame = Instance.new("Frame", content)
+	frame.Position = UDim2.new(0.05,0,y,0)
+	frame.Size = UDim2.new(0.9,0,0,26)
+	frame.BackgroundTransparency = 1
+
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(0.7,0,1,0)
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(0,255,0)
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 14
+	label.BackgroundTransparency = 1
+	label.TextXAlignment = Enum.TextXAlignment.Left
+
+	local switch = Instance.new("Frame", frame)
+	switch.Size = UDim2.new(0,36,0,18)
+	switch.Position = UDim2.new(0.75,0,0.15,0)
+	switch.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	switch.BorderSizePixel = 0
+	Instance.new("UICorner", switch).CornerRadius = UDim.new(1,0)
+
+	local knob = Instance.new("Frame", switch)
+	knob.Size = UDim2.new(0,16,1,0)
+	knob.Position = UDim2.new(stateVar and 1 or 0,0,0,0)
+	knob.BackgroundColor3 = Color3.fromRGB(0,255,0)
+	Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
+
+	local glow = Instance.new("UIStroke", knob)
+	glow.Color = Color3.fromRGB(0,255,0)
+	glow.Thickness = 2
+	glow.Transparency = 0.5
+
+	local state = stateVar
+	local function toggle()
+		state = not state
+		knob:TweenPosition(UDim2.new(state and 1 or 0,0,0,0), Enum.EasingDirection.InOut, Enum.EasingStyle.Quad, 0.2,true)
+		if callback then callback(state) end
+	end
+	switch.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then toggle() end
+	end)
+	label.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then toggle() end
+	end)
+	return function() return state end
+end
+
+--// BUTTONS
+local function side(name,y,func)
+	local b = Instance.new("TextButton", sidebar)
+	b.Position = UDim2.new(0,16,0,y)
+	b.Size = UDim2.new(1,-32,0,36)
+	b.Text = "  "..name
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 14
+	b.TextXAlignment = Enum.TextXAlignment.Left
+	b.BackgroundColor3 = Color3.fromRGB(15,15,15)
+	b.TextColor3 = Color3.fromRGB(0,255,0)
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+
+	local stroke = Instance.new("UIStroke", b)
+	stroke.Color = Color3.fromRGB(0,255,0)
+	stroke.Thickness = 2
+	stroke.Transparency = 0.5
+
+	b.MouseButton1Click:Connect(function()
+		func()
+		for _,btn in pairs(sidebar:GetChildren()) do
+			if btn:IsA("TextButton") then
+				btn.TextColor3 = Color3.fromRGB(0,255,0)
+			end
+		end
+		b.TextColor3 = Color3.fromRGB(0,255,0)
+	end)
+end
+
+--// TABS
+side("Self",150,function()
+	clearContent()
+	section(0.16,"SELF HELPERS")
+	-- Barra de vida switch
+	stateHealthBar = addSwitch(0.28,"Barra de Vida",stateHealthBar,function(v)
+		stateHealthBar = v
+	end)()
+	-- Fake Friend Key
+	local b = Instance.new("TextButton", content)
+	b.Position = UDim2.new(0.05,0,0.36,0)
+	b.Size = UDim2.new(0.9,0,0,26)
+	b.Text = "Fake Friend Key: "..(stateFakeFriendKey or "None")
+	b.Font = Enum.Font.Gotham
+	b.TextSize = 14
+	b.TextColor3 = Color3.fromRGB(0,255,0)
+	b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+	b.MouseButton1Click:Connect(function()
+		b.Text = "Fake Friend Key: ..."
+		local c; c = UIS.InputBegan:Connect(function(i,gp)
+			if not gp and i.KeyCode ~= Enum.KeyCode.Unknown then
+				stateFakeFriendKey = i.KeyCode.Name
+				_G.fakeFriendKey = stateFakeFriendKey
+				b.Text = "Fake Friend Key: "..stateFakeFriendKey
+				c:Disconnect()
+			end
+		end)
+	end)
+end)
+
+side("Combat",200,function()
+	clearContent()
+	section(0.16,"COMBAT")
+	-- Aim Key selector
+	local b = Instance.new("TextButton", content)
+	b.Position = UDim2.new(0.05,0,0.22,0)
+	b.Size = UDim2.new(0.9,0,0,26)
+	b.Text = "Aim Key: "..(stateAimKey or "None")
+	b.Font = Enum.Font.Gotham
+	b.TextSize = 14
+	b.TextColor3 = Color3.fromRGB(0,255,0)
+	b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+	b.MouseButton1Click:Connect(function()
+		b.Text = "Aim Key: ..."
+		local c; c = UIS.InputBegan:Connect(function(i,gp)
+			if not gp and i.KeyCode ~= Enum.KeyCode.Unknown then
+				stateAimKey = i.KeyCode.Name
+				_G.aimKey = stateAimKey
+				b.Text = "Aim Key: "..stateAimKey
+				c:Disconnect()
+			end
+		end)
+	end)
+
+	-- Aim Part selector
+	local aimParts = {"Head","Chest","Feet"}
+	local aimIndex = 1
+	local bPart = Instance.new("TextButton", content)
+	bPart.Position = UDim2.new(0.05,0,0.32,0)
+	bPart.Size = UDim2.new(0.9,0,0,26)
+	bPart.Text = "Aim Part: "..aimParts[aimIndex]
+	bPart.Font = Enum.Font.Gotham
+	bPart.TextSize = 14
+	bPart.TextColor3 = Color3.fromRGB(0,255,0)
+	bPart.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", bPart).CornerRadius = UDim.new(0,6)
+	bPart.MouseButton1Click:Connect(function()
+		aimIndex = aimIndex + 1
+		if aimIndex > #aimParts then aimIndex = 1 end
+		aimPart = aimParts[aimIndex]
+		bPart.Text = "Aim Part: "..aimPart
+	end)
+-- Dentro de la pestaña Combat, después del Smooth slider
+-- FOV slider
+local bFOV = Instance.new("TextButton", content)
+bFOV.Position = UDim2.new(0.05,0,0.52,0)  -- Ajusta la posición debajo del Smooth
+bFOV.Size = UDim2.new(0.9,0,0,26)
+bFOV.Text = "FOV: "..fovRadius
+bFOV.Font = Enum.Font.Gotham
+bFOV.TextSize = 14
+bFOV.TextColor3 = Color3.fromRGB(0,255,0)
+bFOV.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Instance.new("UICorner", bFOV).CornerRadius = UDim.new(0,6)
+
+bFOV.MouseButton1Click:Connect(function()
+	fovRadius = fovRadius + 10
+	if fovRadius > 360 then fovRadius = 0 end
+	bFOV.Text = "FOV: "..fovRadius
+end)
+
+	-- Smooth slider
+	local bSmooth = Instance.new("TextButton", content)
+	bSmooth.Position = UDim2.new(0.05,0,0.42,0)
+	bSmooth.Size = UDim2.new(0.9,0,0,26)
+	bSmooth.Text = "Smooth: "..smoothValue
+	bSmooth.Font = Enum.Font.Gotham
+	bSmooth.TextSize = 14
+	bSmooth.TextColor3 = Color3.fromRGB(0,255,0)
+	bSmooth.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", bSmooth).CornerRadius = UDim.new(0,6)
+	bSmooth.MouseButton1Click:Connect(function()
+		smoothValue = smoothValue + 1
+		if smoothValue > 10 then smoothValue = 1 end
+		stateSmooth = smoothValue
+		bSmooth.Text = "Smooth: "..smoothValue
+	end)
+end)
+
+side("Settings",250,function()
+	clearContent()
+	section(0.16,"SETTINGS")
+	-- Toggle GUI Key
+	local b1 = Instance.new("TextButton", content)
+	b1.Position = UDim2.new(0.05,0,0.22,0)
+	b1.Size = UDim2.new(0.9,0,0,26)
+	b1.Text = "Toggle GUI Key: "..tostring(_G.toggleGuiKey)
+	b1.Font = Enum.Font.Gotham
+	b1.TextSize = 14
+	b1.TextColor3 = Color3.fromRGB(0,255,0)
+	b1.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", b1).CornerRadius = UDim.new(0,6)
+	b1.MouseButton1Click:Connect(function()
+		b1.Text = "Toggle GUI Key: ..."
+		local c; c = UIS.InputBegan:Connect(function(i,gp)
+			if not gp and i.KeyCode ~= Enum.KeyCode.Unknown then
+				_G.toggleGuiKey = i.KeyCode
+				b1.Text = "Toggle GUI Key: "..tostring(_G.toggleGuiKey)
+				c:Disconnect()
+			end
+		end)
+	end)
+
+	-- Toggle FOV Key
+	local b2 = Instance.new("TextButton", content)
+	b2.Position = UDim2.new(0.05,0,0.32,0)
+	b2.Size = UDim2.new(0.9,0,0,26)
+	b2.Text = "Toggle FOV Key: "..tostring(_G.toggleFOVKey)
+	b2.Font = Enum.Font.Gotham
+	b2.TextSize = 14
+	b2.TextColor3 = Color3.fromRGB(0,255,0)
+	b2.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", b2).CornerRadius = UDim.new(0,6)
+	b2.MouseButton1Click:Connect(function()
+		b2.Text = "Toggle FOV Key: ..."
+		local c; c = UIS.InputBegan:Connect(function(i,gp)
+			if not gp and i.KeyCode ~= Enum.KeyCode.Unknown then
+				_G.toggleFOVKey = i.KeyCode
+				b2.Text = "Toggle FOV Key: "..tostring(_G.toggleFOVKey)
+				c:Disconnect()
+			end
+		end)
+	end)
+end)
+
+--// FOV Circle
+local FOV = Drawing.new("Circle")
+FOV.Color = Color3.fromRGB(0,255,0)
+FOV.Thickness = 2
+FOV.Filled = false
+FOV.NumSides = 80
+
+--// AIM TARGET
+local function getClosestTarget(partName)
+	local closest, dist = nil, math.huge
+	local center = Cam.ViewportSize/2
+	for _,p in pairs(Players:GetPlayers()) do
+		if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			if ignoreFriends and lp:IsFriendsWith(p.UserId) then continue end
+			local targetPart
+			if partName == "Head" and p.Character:FindFirstChild("Head") then
+				targetPart = p.Character.Head
+			elseif partName == "Chest" or partName == "Feet" then
+				targetPart = p.Character:FindFirstChild("HumanoidRootPart")
+			end
+			if targetPart then
+				local pos, vis = Cam:WorldToViewportPoint(targetPart.Position)
+				local mag = (Vector2.new(pos.X,pos.Y)-center).Magnitude
+				if vis and mag < dist and mag < fovRadius then
+					dist = mag
+					closest = targetPart
+				end
+			end
+		end
+	end
+	return closest
+end
+
+--// INPUT
+UIS.InputBegan:Connect(function(i,gp)
+	if gp then return end
+	if _G.toggleGuiKey and i.KeyCode == _G.toggleGuiKey then
+		guiVisible = not guiVisible
+		gui.Enabled = guiVisible
+	end
+	if _G.toggleFOVKey and i.KeyCode == _G.toggleFOVKey then
+		fovVisible = not fovVisible
+		FOV.Visible = fovVisible
+	end
+	if _G.aimKey and i.KeyCode.Name == _G.aimKey then
+		aimEnabled = not aimEnabled
+		if not aimEnabled then targetLocked = nil end
+	end
+	if _G.fakeFriendKey and i.KeyCode.Name == _G.fakeFriendKey then
+		ignoreFriends = not ignoreFriends
+	end
+end)
+
+--// HEALTH BARS
+local HealthBars = {}
+RunService.RenderStepped:Connect(function()
+	if not stateHealthBar then
+		for _,v in pairs(HealthBars) do
+			if v.Frame then v.Frame.Visible = false end
+		end
+		return
+	end
+
+	for _,p in pairs(Players:GetPlayers()) do
+		if p ~= lp and p.Character and p.Character:FindFirstChild("Head") then
+			local hum = p.Character:FindFirstChildOfClass("Humanoid")
+			local head = p.Character.Head
+			if hum and head then
+				if not HealthBars[p] then
+					local frame = Instance.new("Frame", healthGui)
+					frame.Size = UDim2.new(0,80,0,12)
+					frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+					frame.BorderSizePixel = 0
+					Instance.new("UICorner", frame).CornerRadius = UDim.new(1,0)
+
+					local bar = Instance.new("Frame", frame)
+					bar.Size = UDim2.new(1,0,1,0)
+					bar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+					bar.BorderSizePixel = 0
+					Instance.new("UICorner", bar).CornerRadius = UDim.new(1,0)
+
+					local text = Instance.new("TextLabel", frame)
+					text.Size = UDim2.new(1,0,1,0)
+					text.BackgroundTransparency = 1
+					text.Font = Enum.Font.GothamBold
+					text.TextSize = 14
+					text.TextColor3 = Color3.fromRGB(0,255,0)
+					text.TextStrokeTransparency = 0.5
+					text.TextScaled = true
+					text.TextXAlignment = Enum.TextXAlignment.Center
+					text.TextYAlignment = Enum.TextYAlignment.Center
+
+					HealthBars[p] = {Frame=frame,Bar=bar,Text=text}
+				end
+
+				local ratio = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+				local hb = HealthBars[p]
+				hb.Bar.Size = UDim2.new(ratio,0,1,0)
+				hb.Text.Text = math.floor(hum.Health).." / "..math.floor(hum.MaxHealth)
+
+				local pos, vis = Cam:WorldToViewportPoint(head.Position + Vector3.new(0,2,0))
+				if vis and pos.Z > 0 then
+					hb.Frame.Position = UDim2.new(0, pos.X - hb.Frame.Size.X.Offset/2, 0, pos.Y)
+					hb.Frame.Visible = true
+				else
+					hb.Frame.Visible = false
+				end
+			end
+		end
+	end
+end)
+
+--// LOOP AIM + FOV
+RunService.RenderStepped:Connect(function()
+	-- FOV en el centro de pantalla
+	if fovFollowCursor then
+		FOV.Position = UIS:GetMouseLocation()
+	else
+		FOV.Position = Cam.ViewportSize/2
+	end
+	FOV.Radius = fovRadius
+	FOV.Visible = fovVisible
+
+	if aimEnabled then
+		if not targetLocked or not targetLocked.Parent then
+			targetLocked = getClosestTarget(aimPart)
+		end
+		if targetLocked then
+			local currentCF = Cam.CFrame
+			local targetCF = CFrame.lookAt(currentCF.Position, targetLocked.Position)
+			local lerpAmount = 1 - (smoothValue/10)
+			Cam.CFrame = currentCF:Lerp(targetCF, lerpAmount)
+		end
+	else
+		targetLocked = nil
+	end
+end)
