@@ -1,0 +1,96 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- SETTINGS
+local LOCK_KEY = Enum.KeyCode.LeftShift
+local MAX_DISTANCE = 300
+local AIM_PART = "Head"
+
+-- VARIABLES
+local Locked = false
+local Target = nil
+
+-- FUNCIONES
+local function IsAlive(character)
+	local hum = character:FindFirstChildOfClass("Humanoid")
+	return hum and hum.Health > 0
+end
+
+local function GetClosestTarget()
+	local closest, shortest = nil, MAX_DISTANCE
+
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= Player and plr.Character and IsAlive(plr.Character) then
+			local part = plr.Character:FindFirstChild(AIM_PART)
+			if part then
+				local dist = (part.Position - Camera.CFrame.Position).Magnitude
+				if dist < shortest then
+					shortest = dist
+					closest = plr.Character
+				end
+			end
+		end
+	end
+
+	return closest
+end
+
+-- INPUT PC (SHIFT)
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.KeyCode == LOCK_KEY then
+		Locked = not Locked
+		if Locked then
+			Target = GetClosestTarget()
+		else
+			Target = nil
+		end
+	end
+end)
+
+-- BOTÃ“N MÃ“VIL
+if UserInputService.TouchEnabled then
+	local gui = Instance.new("ScreenGui", Player.PlayerGui)
+	gui.Name = "AimLockGUI"
+
+	local btn = Instance.new("TextButton", gui)
+	btn.Size = UDim2.new(0, 140, 0, 60)
+	btn.Position = UDim2.new(0.75, 0, 0.75, 0)
+	btn.Text = "AIM LOCK"
+	btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextScaled = true
+	btn.BorderSizePixel = 0
+	btn.AutoButtonColor = true
+	btn.BackgroundTransparency = 0.2
+
+	btn.Activated:Connect(function()
+		Locked = not Locked
+		if Locked then
+			Target = GetClosestTarget()
+			btn.Text = "LOCKED"
+		else
+			Target = nil
+			btn.Text = "AIM LOCK"
+		end
+	end)
+end
+
+-- CÃMARA LOCK
+RunService.RenderStepped:Connect(function()
+	if Locked and Target and IsAlive(Target) then
+		local part = Target:FindFirstChild(AIM_PART)
+		if part then
+			Camera.CFrame = CFrame.new(
+				Camera.CFrame.Position,
+				part.Position
+			)
+		end
+	else
+		Target = nil
+	end
+end)
