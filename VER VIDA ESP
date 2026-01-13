@@ -1,0 +1,52 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local function agregarVida(character)
+    local head = character:WaitForChild("Head")
+    local humanoid = character:WaitForChild("Humanoid")
+
+    if head:FindFirstChild("VidaGUI") then return end
+
+    local gui = Instance.new("BillboardGui")
+    gui.Name = "VidaGUI"
+    gui.Adornee = head
+    gui.Size = UDim2.new(0, 100, 0, 20)
+    gui.StudsOffset = Vector3.new(0, 2.8, 0)
+    gui.AlwaysOnTop = true
+    gui.Parent = head
+
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.TextScaled = true
+    text.Font = Enum.Font.GothamBold
+    text.Parent = gui
+
+    RunService.RenderStepped:Connect(function()
+        if humanoid.Health > 0 then
+            local hp = math.floor(humanoid.Health)
+            local max = math.floor(humanoid.MaxHealth)
+
+            text.Text = hp .. " / " .. max
+
+            if hp > max * 0.5 then
+                text.TextColor3 = Color3.fromRGB(0, 255, 0)
+            elseif hp > max * 0.25 then
+                text.TextColor3 = Color3.fromRGB(255, 170, 0)
+            else
+                text.TextColor3 = Color3.fromRGB(255, 0, 0)
+            end
+        end
+    end)
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    if player.Character then
+        agregarVida(player.Character)
+    end
+    player.CharacterAdded:Connect(agregarVida)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(agregarVida)
+end)
