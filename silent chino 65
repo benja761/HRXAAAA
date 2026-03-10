@@ -1,0 +1,256 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- BLUR
+local blur = Instance.new("BlurEffect")
+blur.Size = 3
+blur.Parent = game.Lighting
+
+-- VARIABLES
+local enabled = false
+local showFOV = true
+local FOV = 120
+local maxFOV = 300
+local SilentTarget = nil
+local hideKey = Enum.KeyCode.Z
+local selectingKey = false
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Parent = player:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame")
+main.Parent = gui
+main.Size = UDim2.new(0,340,0,260)
+main.Position = UDim2.new(0.5,-170,0.5,-130)
+main.BackgroundColor3 = Color3.fromRGB(18,18,22)
+main.BorderSizePixel = 0
+Instance.new("UICorner",main).CornerRadius = UDim.new(0,12)
+
+-- GLOW BORDE MENU
+local glow = Instance.new("UIStroke")
+glow.Color = Color3.fromRGB(255,30,30)
+glow.Thickness = 2
+glow.Transparency = 0.2
+glow.Parent = main
+TweenService:Create(glow, TweenInfo.new(1,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true), {Transparency = 0.6}):Play()
+
+-- TITLE
+local title = Instance.new("TextLabel")
+title.Parent = main
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.Text = "Silent By chino"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+
+-- CHECKBOX
+local checkbox = Instance.new("TextButton")
+checkbox.Parent = main
+checkbox.Size = UDim2.new(0,18,0,18)
+checkbox.Position = UDim2.new(0.5,-9,0,40)-- posición izquierda del título echo por chino
+checkbox.Text = ""
+--echo por chino--echo por chino--echo por chino
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0,4)
+corner.Parent = checkbox
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(255,40,40)
+stroke.Thickness = 1.5
+stroke.Parent = checkbox
+
+local check = Instance.new("Frame")
+check.Size = UDim2.new(1,-6,1,-6)
+check.Position = UDim2.new(0,3,0,3)
+check.BackgroundColor3 = Color3.fromRGB(255,40,40)
+check.Visible = false
+check.Parent = checkbox
+
+checkbox.MouseButton1Click:Connect(function()
+	enabled = not enabled
+	check.Visible = enabled
+end)
+--echo por chino--echo por chino--echo por chino
+-- FOV BUTTON--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino
+local fovBtn = Instance.new("TextButton")
+fovBtn.Parent = main
+fovBtn.Position = UDim2.new(0,150,0,40)--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino
+fovBtn.Size = UDim2.new(0,120,0,28)
+fovBtn.Text = "FOV: ON"
+fovBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
+fovBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",fovBtn).CornerRadius = UDim.new(1,0)
+--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino
+fovBtn.MouseButton1Click:Connect(function()
+	showFOV = not showFOV
+	fovBtn.Text = showFOV and "FOV: ON" or "FOV: OFF"
+end)
+
+-- FOV TEXT
+local fovText = Instance.new("TextLabel")
+fovText.Parent = main
+fovText.Position = UDim2.new(0,15,0,90)
+fovText.Size = UDim2.new(1,-30,0,20)
+fovText.BackgroundTransparency = 1
+fovText.Text = "FOV Size: "..FOV
+fovText.TextColor3 = Color3.new(1,1,1)
+
+-- FOV BAR
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(1,-30,0,8)
+bar.BackgroundColor3 = Color3.fromRGB(40,40,40)
+bar.Parent = main
+bar.Position = UDim2.new(0,15,0,115)
+--echo por chino--echo por chino--echo por chino--echo por chino
+local fill = Instance.new("Frame")
+fill.Size = UDim2.new(FOV/maxFOV,0,1,0)
+fill.BackgroundColor3 = Color3.fromRGB(255,40,40)
+fill.Parent = bar
+Instance.new("UICorner",fill).CornerRadius = UDim.new(1,0)
+
+local sliding = false
+bar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = true end
+end)
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+end)
+UIS.InputChanged:Connect(function(input)
+	if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local percent = (input.Position.X - bar.AbsolutePosition.X)/bar.AbsoluteSize.X
+		percent = math.clamp(percent,0,1)
+		fill.Size = UDim2.new(percent,0,1,0)
+		FOV = math.floor(percent * maxFOV)
+		fovText.Text = "FOV Size: "..FOV
+	end
+end)--echo por chino--echo por chino--echo por chino
+--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino
+-- echo por chino--echo por chino--echo por chino
+local circle = Drawing.new("Circle")
+circle.Color = Color3.fromRGB(255,0,0)
+circle.Thickness = 2--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino
+circle.NumSides = 100--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino
+circle.Radius = FOV--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino
+circle.Filled = false--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino
+circle.Visible = true--echo por chino--echo por chino--echo por chino--echo por chino
+--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino--echo por chino
+-- ESP LINE
+local line = Drawing.new("Line")
+line.Color = Color3.fromRGB(255,0,0)
+line.Thickness = 2
+line.Visible = false
+
+-- GET CLOSEST PLAYER
+local function getClosestPlayer()
+	local closest = nil
+	local shortest = FOV
+	for _,v in pairs(Players:GetPlayers()) do
+		if v ~= player and v.Character and v.Character:FindFirstChild("Head") then
+			local head = v.Character.Head
+			local pos, visible = camera:WorldToViewportPoint(head.Position)
+			if visible then
+				local mousePos = UIS:GetMouseLocation()
+				local dist = (Vector2.new(pos.X,pos.Y)-mousePos).Magnitude
+				if dist < shortest then
+					shortest = dist
+					closest = head
+				end
+			end
+		end
+	end
+	return closest
+end
+
+-- RENDER LOOP
+RunService.RenderStepped:Connect(function()
+	local mousePos = UIS:GetMouseLocation()
+	circle.Visible = showFOV
+	circle.Position = mousePos
+	circle.Radius = FOV
+
+	if enabled then
+		SilentTarget = getClosestPlayer()
+	else
+		SilentTarget = nil
+	end
+
+	if SilentTarget then
+		local pos, visible = camera:WorldToViewportPoint(SilentTarget.Position)
+		if visible then
+			line.From = mousePos
+			line.To = Vector2.new(pos.X,pos.Y)
+			line.Visible = true
+		else
+			line.Visible = false
+		end
+	else
+		line.Visible = false
+	end
+end)
+
+-- SILENT AIM HOOK
+local mt = getrawmetatable(game)
+local old = mt.__namecall
+setreadonly(mt,false)
+mt.__namecall = newcclosure(function(self,...)
+	local args = {...}
+	local method = getnamecallmethod()
+
+	if enabled and SilentTarget and SilentTarget.Parent then
+		if method == "Raycast" and self == workspace then
+			local origin, direction = args[1], args[2]
+			if typeof(origin)=="Vector3" and typeof(direction)=="Vector3" then
+				args[2] = (SilentTarget.Position-origin).Unit*direction.Magnitude
+				return old(self, unpack(args))
+			end
+		end
+		if method == "FindPartOnRay" and self == workspace then
+			local ray = args[1]
+			args[1] = Ray.new(ray.Origin,(SilentTarget.Position-ray.Origin).Unit*500)
+			return old(self, unpack(args))
+		end
+	end
+
+	return old(self,...)
+end)
+setreadonly(mt,true)
+
+-- BOTON CAMBIAR TECLA PARA OCULTAR MENU
+local keyBtn = Instance.new("TextButton")
+keyBtn.Parent = main
+keyBtn.Position = UDim2.new(0,15,1,-35)
+keyBtn.Size = UDim2.new(0,150,0,25)
+keyBtn.BackgroundColor3 = Color3.fromRGB(35,35,40)
+keyBtn.TextColor3 = Color3.new(1,1,1)
+keyBtn.Text = "Menu Key: "..hideKey.Name
+keyBtn.Font = Enum.Font.Gotham
+keyBtn.TextSize = 13
+Instance.new("UICorner",keyBtn).CornerRadius = UDim.new(0,6)
+
+keyBtn.MouseButton1Click:Connect(function()
+	selectingKey = true
+	keyBtn.Text = "Press a key..."
+end)
+
+UIS.InputBegan:Connect(function(input,gp)
+	if gp then return end
+	if selectingKey then
+		hideKey = input.KeyCode
+		selectingKey = false
+		keyBtn.Text = "Menu Key: "..hideKey.Name
+		return
+	end
+	if input.KeyCode == hideKey then
+		main.Visible = not main.Visible
+		blur.Size = main.Visible and 10 or 0
+	end
+end)
